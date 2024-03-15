@@ -1,0 +1,98 @@
+---
+- hosts: host_1
+  become: yes
+  tasks: 
+#Change directory to /opt
+- name: Change directory to /opt
+  shell: cd /opt
+  become: yes
+  become_user: root
+#Download Prometheus 
+- name: Download Prometheus binary
+  get_url:
+    url: "https://github.com/prometheus/prometheus/releases/download/v2.45.3/prometheus-2.45.3.linux-amd64.tar.gz"
+    dest: "/opt/prometheus-binary.tar.gz"
+    mode: "0644"  # Optional: Set the file permissions
+#Tar the downloaded folder
+- name: Extract Prometheus binary
+  unarchive:
+    src: "/opt/prometheus-binary.tar.gz"
+    dest: "/opt/prometheus-files"
+    remote_src: yes  # Set to 'yes' if the file is on the remote server
+    creates: "/opt/prometheus/prometheus"  # Optional: Specify a file that, when it exists, indicates that the extraction has already been done
+#Create Prometheus user
+- name: Create prometheus user
+  user:
+    name: prometheus
+    shell: /bin/false
+    createhome: no
+#Create directory /etc/prometheus
+- name: Create /etc/prometheus directory
+  file:
+    path: /etc/prometheus
+    state: directory
+    owner: prometheus
+    group: prometheus
+    mode: 0755
+#Create directory /var/lib/prometheus
+- name: Create /var/lib/prometheus directory
+  file:
+    path: /var/lib/prometheus
+    state: directory
+    owner: prometheus  # Set the owner as required
+    group: prometheus  # Set the group as required
+    mode: 0755
+#Move binary file to /usr/loca/bin/
+- name: Move binary file from /opt to /usr/local/bin/
+  shell: mv /opt/prometheus /usr/local/bin/
+#Move consoles to /etc/prometheus
+- name: Move files matching pattern console* to /etc/prometheus
+  shell: mv /path/to/source/console* /etc/prometheus/
+  args:
+    warn: false
+
+
+#Add Grafana-apt-gpg-repo-cache
+- name: Install apt-transport-https package
+  apt:
+    name: apt-transport-https
+    state: present
+    update_cache: yes
+
+- name: Add Grafana GPG key
+  apt_key:
+    url: https://packages.grafana.com/gpg.key
+    state: present
+
+- name: Add Grafana repository
+  apt_repository:
+    repo: "deb https://packages.grafana.com/oss/deb stable main"
+    state: present
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+- name: Install Grafana package
+  apt:
+    name: grafana
+    state: present
+#Update Grafana Package
+- name: Update package list
+  apt:
+    update_cache: yes
+#Install Grafana
+- name: Install Grafana package
+  apt:
+    name: grafana
+    state: present
+#Enable Grafana-service
+- name: Enable and start Grafana service
+  systemd:
+    name: grafana-server
+    enabled: yes
+    state: started
+
+
+
+
